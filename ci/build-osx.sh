@@ -43,10 +43,5 @@ ${NODEJS_URL_PARAM} \
 ${NODEJS_VERSION_PARAM} \
 ${CMAKE_OSX_ARCHITECTURES_PARAM}
 
-cd ..
-
-# Build
-cmake --build $BUILD_DIRECTORY --target install --config RelWithDebInfo
-
-# Ensure distribution directory exists
-mkdir -p $FULL_DISTRIBUTE_PATH
+# Build and Install
+cmake --build . --target install --config RelWithDebInfo
