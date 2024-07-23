@@ -1,0 +1,82 @@
+name: Build and Deploy
+
+concurrency: 
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - streamlabs
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - streamlabs
+
+env:
+  BUILD_DIRECTORY: build
+  GENERATOR: Visual Studio 15 2017 Win64
+  DISTRIBUTE_DIRECTORY: distribute
+  FULL_DISTRIBUTE_PATH: ${{env.BUILD_DIRECTORY}}/${{env.DISTRIBUTE_DIRECTORY}}
+  RUNTIME_URL: https://artifacts.electronjs.org/headers/dist
+  RUNTIME_NAME: iojs
+  RUNTIME_VERSION: v29.4.3
+
+permissions:
+  contents: read
+
+jobs:
+  build_macos:
+    name: Build on MacOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 10
+
+      - name: Get tag for artifact
+        run: echo "tagartifact=node-window-rendering-$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '10.x'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Bump version number
+        if: contains(github.ref, 'refs/tags/')
+        run: node ci/bump-version.js
+
+      - name: Build node-window-rendering
+        run: ./ci/build-osx.sh
+        env:
+          ARCHITECTURE: ${{ matrix.arch }}
+
+      - name: Generate artifact
+        run: tar -czf ${{env.tagartifact}}-osx-${{ matrix.arch }}.tar.gz -C build/distribute/node-window-rendering .
+        shell: bash
+
+      - name: Publish build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{env.tagartifact}}-osx-${{ matrix.arch }}.tar.gz
+          path: ${{github.workspace}}/${{env.tagartifact}}-osx-${{ matrix.arch }}.tar.gz
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Upload tag artifact to S3
+        run: aws s3 cp ${{github.workspace}}/${{env.tagartifact}}-osx-${{ matrix.arch }}.tar.gz s3://slobs-node-window-rendering --acl public-read
+        if: contains(github.ref, 'refs/tags/')
