@@ -29,10 +29,21 @@ permissions:
 jobs:
   build_macos:
     name: Build on MacOS
-    runs-on: macos-latest
+    runs-on: ${{ matrix.image }}
     strategy:
       matrix:
-        arch: [x86_64, arm64]
+        BuildReleases: [Release-x86_64, Release-arm64]
+        include:
+          - BuildReleases: Release-x86_64
+            image: macos-13
+            BuildConfig: RelWithDebInfo
+            ReleaseName: release
+            Architecture: x86_64
+          - BuildReleases: Release-arm64
+            image: macos-14
+            BuildConfig: RelWithDebInfo
+            ReleaseName: release
+            Architecture: arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -41,13 +52,13 @@ jobs:
 
       - name: Get tag for artifact
         id: get_tag
-        run: echo "tagartifact=node-window-rendering-$(git describe --tags --abbrev=0)"
+        run: echo "tagartifact=node-window-rendering-$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
         shell: bash
 
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '10.x'
+          node-version: '18.x'
 
       - name: Install dependencies
         run: yarn install
@@ -59,17 +70,17 @@ jobs:
       - name: Build node-window-rendering
         run: ./ci/build-osx.sh
         env:
-          ARCHITECTURE: ${{ matrix.arch }}
+          ARCHITECTURE: ${{ matrix.Architecture }}
 
       - name: Generate artifact
-        run: tar -czf ${{ steps.get_tag.outputs.tagartifact }}-osx-${{ matrix.arch }}.tar.gz -C build/distribute/node-window-rendering .
+        run: tar -czf ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz -C build/distribute/node-window-rendering .
         shell: bash
 
       - name: Publish build artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ steps.get_tag.outputs.tagartifact }}-osx-${{ matrix.arch }}.tar.gz
-          path: ${{ github.workspace }}/${{ steps.get_tag.outputs.tagartifact }}-osx-${{ matrix.arch }}.tar.gz
+          name: ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz
+          path: ${{ github.workspace }}/${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -79,5 +90,5 @@ jobs:
           aws-region: us-west-2
 
       - name: Upload tag artifact to S3
-        run: aws s3 cp ${{ github.workspace }}/${{ steps.get_tag.outputs.tagartifact }}-osx-${{ matrix.arch }}.tar.gz s3://slobs-node-window-rendering --acl public-read
+        run: aws s3 cp ${{ github.workspace }}/${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz s3://slobs-node-window-rendering --acl public-read
         if: contains(github.ref, 'refs/tags/')
