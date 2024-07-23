@@ -18,7 +18,7 @@ env:
   BUILD_DIRECTORY: build
   GENERATOR: Visual Studio 15 2017 Win64
   DISTRIBUTE_DIRECTORY: distribute
-  FULL_DISTRIBUTE_PATH: build/distribute
+  FULL_DISTRIBUTE_PATH: build/build/distribute
   RUNTIME_URL: https://artifacts.electronjs.org/headers/dist
   RUNTIME_NAME: iojs
   RUNTIME_VERSION: v29.4.3
