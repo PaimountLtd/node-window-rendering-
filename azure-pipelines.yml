@@ -13,7 +13,7 @@ variables:
   FullDistributePath: $(BuildDirectory)\$(DistributeDirectory)
   RuntimeURL: https://artifacts.electronjs.org/headers/dist
   RuntimeName: iojs
-  RuntimeVersion: v25.9.3
+  RuntimeVersion: v29.4.3
 
 jobs:
 - job: 'MacOSX'
