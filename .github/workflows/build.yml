@@ -18,7 +18,7 @@ env:
   BUILD_DIRECTORY: build
   GENERATOR: Visual Studio 15 2017 Win64
   DISTRIBUTE_DIRECTORY: distribute
-  FULL_DISTRIBUTE_PATH: ${{env.BUILD_DIRECTORY}}/${{env.DISTRIBUTE_DIRECTORY}}
+  FULL_DISTRIBUTE_PATH: build/distribute
   RUNTIME_URL: https://artifacts.electronjs.org/headers/dist
   RUNTIME_NAME: iojs
   RUNTIME_VERSION: v29.4.3
@@ -40,7 +40,8 @@ jobs:
           fetch-depth: 10
 
       - name: Get tag for artifact
-        run: echo "tagartifact=node-window-rendering-$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+        id: get_tag
+        run: echo "tagartifact=node-window-rendering-$(git describe --tags --abbrev=0)"
         shell: bash
 
       - name: Install Node.js
@@ -61,14 +62,14 @@ jobs:
           ARCHITECTURE: ${{ matrix.arch }}
 
       - name: Generate artifact
-        run: tar -czf ${{env.tagartifact}}-osx-${{ matrix.arch }}.tar.gz -C build/distribute/node-window-rendering .
+        run: tar -czf ${{ steps.get_tag.outputs.tagartifact }}-osx-${{ matrix.arch }}.tar.gz -C build/distribute/node-window-rendering .
         shell: bash
 
       - name: Publish build artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{env.tagartifact}}-osx-${{ matrix.arch }}.tar.gz
-          path: ${{github.workspace}}/${{env.tagartifact}}-osx-${{ matrix.arch }}.tar.gz
+          name: ${{ steps.get_tag.outputs.tagartifact }}-osx-${{ matrix.arch }}.tar.gz
+          path: ${{ github.workspace }}/${{ steps.get_tag.outputs.tagartifact }}-osx-${{ matrix.arch }}.tar.gz
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -78,5 +79,5 @@ jobs:
           aws-region: us-west-2
 
       - name: Upload tag artifact to S3
-        run: aws s3 cp ${{github.workspace}}/${{env.tagartifact}}-osx-${{ matrix.arch }}.tar.gz s3://slobs-node-window-rendering --acl public-read
+        run: aws s3 cp ${{ github.workspace }}/${{ steps.get_tag.outputs.tagartifact }}-osx-${{ matrix.arch }}.tar.gz s3://slobs-node-window-rendering --acl public-read
         if: contains(github.ref, 'refs/tags/')
