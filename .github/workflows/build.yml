@@ -69,26 +69,18 @@ jobs:
 
       - name: Build node-window-rendering
         run: ./ci/build-osx.sh
+        shell: /bin/bash -e {0}
         env:
+          BUILD_DIRECTORY: ${{ env.BUILD_DIRECTORY }}
+          GENERATOR: ${{ env.GENERATOR }}
+          DISTRIBUTE_DIRECTORY: ${{ env.DISTRIBUTE_DIRECTORY }}
+          FULL_DISTRIBUTE_PATH: ${{ env.FULL_DISTRIBUTE_PATH }}
+          RUNTIME_URL: ${{ env.RUNTIME_URL }}
+          RUNTIME_NAME: ${{ env.RUNTIME_NAME }}
+          RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
+          tagartifact: ${{ env.tagartifact }}
           ARCHITECTURE: ${{ matrix.Architecture }}
 
       - name: Generate artifact
-        run: tar -czf ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz -C build/distribute/node-window-rendering .
-        shell: bash
-
-      - name: Publish build artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz
-          path: ${{ github.workspace }}/${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-
-      - name: Upload tag artifact to S3
-        run: aws s3 cp ${{ github.workspace }}/${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz s3://slobs-node-window-rendering --acl public-read
-        if: contains(github.ref, 'refs/tags/')
+        run: tar -czf ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz -C ${{ env.FULL_DISTRIBUTE_PATH }} .
+        shell:
