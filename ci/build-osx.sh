@@ -47,3 +47,6 @@ cd ..
 
 # Build
 cmake --build $BUILD_DIRECTORY --target install --config RelWithDebInfo
+
+# Ensure distribution directory exists
+mkdir -p $FULL_DISTRIBUTE_PATH

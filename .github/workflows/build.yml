@@ -81,6 +81,10 @@ jobs:
           tagartifact: ${{ env.tagartifact }}
           ARCHITECTURE: ${{ matrix.Architecture }}
 
+      - name: Ensure distribution directory exists
+        run: mkdir -p ${{ env.FULL_DISTRIBUTE_PATH }}
+        shell: bash
+
       - name: Generate artifact
         run: tar -czf ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz -C ${{ env.FULL_DISTRIBUTE_PATH }} .
         shell: bash
