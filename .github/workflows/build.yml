@@ -82,7 +82,7 @@ jobs:
           ARCHITECTURE: ${{ matrix.Architecture }}
 
       - name: Generate artifact
-        run: tar -czf ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz -C ${{env.BUILD_DIRECTORY}}/${{ env.FULL_DISTRIBUTE_PATH }}/node-window-rendering .
+        run: tar -czf ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz -C ${{env.BUILD_DIRECTORY}}/${{ env.FULL_DISTRIBUTE_PATH }}/ .
         shell: bash
 
       - name: Publish build artifact
