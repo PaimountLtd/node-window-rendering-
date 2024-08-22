@@ -1,25 +1,27 @@
+#!/bin/bash
+
 brew install wget
 
-mkdir build
-cd build
+mkdir -p $BUILD_DIRECTORY
+cd $BUILD_DIRECTORY
 
-if [ -n "${RUNTIMENAME}" ]
+if [ -n "${RUNTIME_NAME}" ]
 then
-    NODEJS_NAME_PARAM="-DNODEJS_NAME=${RUNTIMENAME}"
+    NODEJS_NAME_PARAM="-DNODEJS_NAME=${RUNTIME_NAME}"
 else
     NODEJS_NAME_PARAM=""
 fi
 
-if [ -n "${RUNTIMEURL}" ]
+if [ -n "${RUNTIME_URL}" ]
 then
-    NODEJS_URL_PARAM="-DNODEJS_URL=${RUNTIMEURL}"
+    NODEJS_URL_PARAM="-DNODEJS_URL=${RUNTIME_URL}"
 else
     NODEJS_URL_PARAM=""
 fi
 
-if [ -n "${RUNTIMEVERSION}" ]
+if [ -n "${RUNTIME_VERSION}" ]
 then
-    NODEJS_VERSION_PARAM="-DNODEJS_VERSION=${RUNTIMEVERSION}"
+    NODEJS_VERSION_PARAM="-DNODEJS_VERSION=${RUNTIME_VERSION}"
 else
     NODEJS_VERSION_PARAM=""
 fi
@@ -35,13 +37,11 @@ fi
 cmake .. \
 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
--DCMAKE_INSTALL_PREFIX=${DISTRIBUTEDIRECTORY}/node-window-rendering \
+-DCMAKE_INSTALL_PREFIX=${FULL_DISTRIBUTE_PATH}/node-window-rendering \
 ${NODEJS_NAME_PARAM} \
 ${NODEJS_URL_PARAM} \
 ${NODEJS_VERSION_PARAM} \
 ${CMAKE_OSX_ARCHITECTURES_PARAM}
 
-cd ..
-
-# Build
-cmake --build build --target install --config RelWithDebInfo
+# Build and Install
+cmake --build . --target install --config RelWithDebInfo

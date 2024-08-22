@@ -1,0 +1,103 @@
+name: Build and Deploy
+
+concurrency: 
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - streamlabs
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - streamlabs
+
+env:
+  BUILD_DIRECTORY: build
+  GENERATOR: Visual Studio 15 2017 Win64
+  DISTRIBUTE_DIRECTORY: distribute
+  FULL_DISTRIBUTE_PATH: build/distribute
+  RUNTIME_URL: https://artifacts.electronjs.org/headers/dist
+  RUNTIME_NAME: iojs
+  RUNTIME_VERSION: v29.4.3
+
+permissions:
+  contents: read
+
+jobs:
+  build_macos:
+    name: Build on MacOS
+    runs-on: ${{ matrix.image }}
+    strategy:
+      matrix:
+        BuildReleases: [Release-x86_64, Release-arm64]
+        include:
+          - BuildReleases: Release-x86_64
+            image: macos-13
+            BuildConfig: RelWithDebInfo
+            ReleaseName: release
+            Architecture: x86_64
+          - BuildReleases: Release-arm64
+            image: macos-14
+            BuildConfig: RelWithDebInfo
+            ReleaseName: release
+            Architecture: arm64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 10
+
+      - name: Get tag for artifact
+        id: get_tag
+        run: echo "tagartifact=node-window-rendering-$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Bump version number
+        if: contains(github.ref, 'refs/tags/')
+        run: node ci/bump-version.js
+
+      - name: Build node-window-rendering
+        run: ./ci/build-osx.sh
+        shell: /bin/bash -e {0}
+        env:
+          BUILD_DIRECTORY: ${{ env.BUILD_DIRECTORY }}
+          GENERATOR: ${{ env.GENERATOR }}
+          DISTRIBUTE_DIRECTORY: ${{ env.DISTRIBUTE_DIRECTORY }}
+          FULL_DISTRIBUTE_PATH: ${{ env.FULL_DISTRIBUTE_PATH }}
+          RUNTIME_URL: ${{ env.RUNTIME_URL }}
+          RUNTIME_NAME: ${{ env.RUNTIME_NAME }}
+          RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
+          tagartifact: ${{ env.tagartifact }}
+          ARCHITECTURE: ${{ matrix.Architecture }}
+
+      - name: Generate artifact
+        run: tar -czf ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz -C ${{env.BUILD_DIRECTORY}}/${{ env.FULL_DISTRIBUTE_PATH }}/ .
+        shell: bash
+
+      - name: Publish build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz
+          path: ${{ github.workspace }}/${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_RELEASE_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_RELEASE_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Upload tag artifact to S3
+        run: aws s3 cp ${{ github.workspace }}/${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz s3://slobs-node-window-rendering --acl public-read
+        if: contains(github.ref, 'refs/tags/')
