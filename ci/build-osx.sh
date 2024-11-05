@@ -1,7 +1,5 @@
 #!/bin/bash
 
-brew install wget
-
 mkdir -p $BUILD_DIRECTORY
 cd $BUILD_DIRECTORY
 

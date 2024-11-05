@@ -92,7 +92,7 @@ jobs:
           path: ${{ github.workspace }}/${{ env.tagartifact }}-osx-${{ matrix.Architecture }}.tar.gz
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_RELEASE_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_RELEASE_SECRET_ACCESS_KEY }}
